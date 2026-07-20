@@ -1,0 +1,36 @@
+{
+  "name": "loan-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Educational home loan calculator for first-time buyers in India",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify": "node scripts/verify.ts",
+    "typecheck": "tsc --noEmit",
+    "check:engine-dup": "! grep -RIn --include='*.ts' --include='*.tsx' --include='*.jsx' -E 'function computeEmi|function computeSchedule' src | grep -v 'src/engine/'"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.12.7"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.6",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.4",
+    "vite-plugin-pwa": "^0.20.0",
+    "vitest": "^2.0.3",
+    "@testing-library/react": "^16.0.0",
+    "jsdom": "^24.1.0"
+  }
+}
