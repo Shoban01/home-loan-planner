@@ -54,9 +54,16 @@ export default function App() {
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans">
       <div className="max-w-md mx-auto bg-white min-h-screen shadow-sm">
 
+        {/* Masthead — scrolls away, sticky EMI header takes over */}
+        <div className="px-5 pt-4 pb-2.5">
+          <p className="text-lg font-bold text-emerald-700 leading-tight flex items-center gap-1.5">
+            LoanLab <span>🏠</span> 
+          </p>
+          <p className="text-xs text-slate-500">Understand your home loan before you commit</p>
+        </div>
         <header className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-slate-200 px-5 py-3 flex justify-between items-end">
           <div>
-            <p className="text-xs text-slate-400">Your EMI · what you pay monthly</p>
+            <p className="text-xs text-slate-400">Monthly EMI</p>
             <p className="text-2xl font-bold tabular-nums">
               {fmt(base.emiAtStart)}<span className="text-sm font-normal text-slate-400">/mo</span>
             </p>
