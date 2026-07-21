@@ -56,7 +56,7 @@ export default function App() {
 
         {/* Masthead — scrolls away, sticky EMI header takes over */}
         <div className="px-5 pt-4 pb-2.5">
-          <p className="text-lg font-bold text-emerald-700 leading-tight flex items-center gap-1.5">
+          <p className="text-2xl font-bold text-emerald-700 leading-tight flex items-center gap-1.5">
             LoanLab <span>🏠</span> 
           </p>
           <p className="text-xs text-slate-500">Understand your home loan before you commit</p>
