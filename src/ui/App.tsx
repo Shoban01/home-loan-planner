@@ -61,6 +61,8 @@ export default function App() {
           </p>
           <p className="text-xs text-slate-500">Understand your home loan before you commit</p>
         </div>
+        <div className="h-px bg-slate-200 mx-5" />
+
         <header className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-slate-200 px-5 py-3 flex justify-between items-end">
           <div>
             <p className="text-xs text-slate-400">Monthly EMI</p>
