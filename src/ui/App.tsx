@@ -7,8 +7,55 @@ import { NumField, Slider, InsightCard, Expander } from './components.tsx';
 import { useLoanScenario } from './useLoanScenario.ts';
 import { TrueCost } from './TrueCost.tsx';
 import { useState } from 'react';
+import { computeEmi, computeSchedule } from '../engine/loan.ts';
 
 const toL = (paise: number, dp = 1) => +(toRupees(paise) / 1e5).toFixed(dp);
+
+function GoalSeek({ s }: { s: ReturnType<typeof useLoanScenario> }) {
+  const [goalYr, setGoalYr] = useState(15);
+  if (s.tenureYr < 2) return null;
+
+  const goal = Math.min(goalYr, s.tenureYr - 1);           // can't "finish early" later than tenure
+  const goalMonths = goal * 12;
+  const goalEmi = computeEmi(s.principal, s.rate, goalMonths);
+  const extraPaise = goalEmi - s.base.emiAtStart;
+  const goalInterest = computeSchedule({
+    principal: s.principal, annualRatePct: s.rate, tenureMonths: goalMonths,
+  }).totalInterest;
+  const savedPaise = s.base.totalInterest - goalInterest;
+  const goalFoirPct = s.income > 0
+    ? ((s.otherEmis + toRupees(goalEmi)) / s.income) * 100
+    : 0;
+
+  return (
+    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-3">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600 mb-2">
+        <span className="font-semibold">Or set a goal — finish in</span>
+        <NumField value={goal} onCommit={setGoalYr}
+          min={1} max={Math.max(1, s.tenureYr - 1)} decimals={0} suffix="yr" />
+        <span className="text-slate-400">instead of {s.tenureYr}</span>
+      </div>
+      <p className="text-sm leading-relaxed text-slate-600 mb-2">
+        Pay about <b>{fmt(Math.max(0, extraPaise))}/mo extra</b> (total EMI {fmt(goalEmi)}) and
+        you're done in <b>{goal} years</b> — saving <b>{fmtC(savedPaise)}</b> in interest.
+      </p>
+      {goalFoirPct > 45 && (
+        <p className="text-xs text-amber-700 mb-2">
+          Heads up: that EMI would be ~{Math.round(goalFoirPct)}% of your income — check
+          "Can I afford this loan?" below before committing to it.
+        </p>
+      )}
+      <button
+        onClick={() => {
+          s.setExtra(Math.max(0, Math.round(toRupees(extraPaise))));
+          s.setMode('reduce_tenure');
+        }}
+        className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold">
+        Apply this plan
+      </button>
+    </div>
+  );
+}
 
 export default function App() {
   const s = useLoanScenario();
@@ -180,6 +227,8 @@ export default function App() {
             <NumField value={s.extra} onCommit={s.setExtra} min={0} max={1000000} decimals={0} prefix="₹" wide />
             <span className="text-slate-400">/mo</span>
           </div>
+
+          <GoalSeek s={s} />
 
           {plan && (
             <>
