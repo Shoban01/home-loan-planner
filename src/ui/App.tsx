@@ -8,6 +8,8 @@ import { useLoanScenario } from './useLoanScenario.ts';
 import { TrueCost } from './TrueCost.tsx';
 import { useState } from 'react';
 import { computeEmi, computeSchedule } from '../engine/loan.ts';
+import type { YearSummary } from '../engine/types.ts';
+
 
 const toL = (paise: number, dp = 1) => +(toRupees(paise) / 1e5).toFixed(dp);
 
@@ -57,13 +59,37 @@ function GoalSeek({ s }: { s: ReturnType<typeof useLoanScenario> }) {
   );
 }
 
+/**
+ * Display-level fix for the whole-rupee EMI rounding residual: the engine
+ * (correctly, like banks) may produce one extra month with a tiny sweep-up
+ * payment (e.g. ₹102 in month 241 of a 240-month loan). Charting that as a
+ * full "year 21" is honest math but misleading pedagogy — so for display,
+ * fold any final year whose total payment is less than one EMI into the
+ * previous year. The engine and its tests stay untouched.
+ */
+function foldResidualYear(years: YearSummary[], emiAtStart: number): YearSummary[] {
+  const last = years[years.length - 1];
+  if (years.length < 2 || last.totalPaid >= emiAtStart) return years;
+  const prev = years[years.length - 2];
+  return [...years.slice(0, -2), {
+    ...prev,
+    interestPaid: prev.interestPaid + last.interestPaid,
+    principalPaid: prev.principalPaid + last.principalPaid,
+    totalPaid: prev.totalPaid + last.totalPaid,
+    closingBalance: last.closingBalance,
+    cumulativeInterest: last.cumulativeInterest,
+    cumulativePrincipal: last.cumulativePrincipal,
+    cumulativePaid: last.cumulativePaid,
+  }];
+}
+
 export default function App() {
   const s = useLoanScenario();
   const [copied, setCopied] = useState(false);
   const share = async () => {
     const url = s.shareUrl();
     if (typeof navigator !== 'undefined' && navigator.share) {
-      try { await navigator.share({ title: 'My home loan scenario — LoanLab', url }); } catch { /* user cancelled */ }
+      try { await navigator.share({ title: 'My home loan scenario — LoanLabs', url }); } catch { /* user cancelled */ }
     } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -74,21 +100,25 @@ export default function App() {
 
   const first = base.rows[0];
   const firstSharePct = Math.round((first.interest / first.emi) * 100);
-  const maxYear = base.years.length;
-  const sy = base.years[Math.min(s.scrubYear, maxYear) - 1];
+  const displayYears = foldResidualYear(base.years, base.emiAtStart);
+  const planYears = plan ? foldResidualYear(plan.years, plan.emiAtStart) : null;
+  const shockYears = shocked ? foldResidualYear(shocked.years, shocked.emiAtStart) : null;
 
-  const compositionData = base.years.map((y) => ({
+  const maxYear = displayYears.length;
+  const sy = displayYears[Math.min(s.scrubYear, maxYear) - 1];
+
+  const compositionData = displayYears.map((y) => ({
     year: y.year, Interest: toL(y.interestPaid, 2), Principal: toL(y.principalPaid, 2),
   }));
-  const balanceData = base.years.map((y, i) => ({
+  const balanceData = displayYears.map((y, i) => ({
     year: y.year,
     Base: toL(y.closingBalance),
-    Plan: plan ? toL(plan.years[i]?.closingBalance ?? 0) : undefined,
+    Plan: planYears ? toL(planYears[i]?.closingBalance ?? 0) : undefined,
   }));
-  const shockData = shocked
-    ? shocked.years.map((y, i) => ({
+  const shockData = shockYears
+    ? shockYears.map((y, i) => ({
         year: y.year,
-        Base: base.years[i] ? toL(base.years[i].closingBalance) : undefined,
+        Base: displayYears[i] ? toL(displayYears[i].closingBalance) : undefined,
         Risen: toL(y.closingBalance),
       }))
     : [];
@@ -104,7 +134,7 @@ export default function App() {
         {/* Masthead — scrolls away, sticky EMI header takes over */}
 <div className="px-5 pt-4 pb-3">
   <p className="text-xl font-bold text-emerald-700 leading-tight flex items-center gap-1.5">
-    LoanLab 🏠
+    LoanLabs 🏠
   </p>
   <p className="text-xs text-slate-500">Understand your home loan before you commit</p>
 </div>
@@ -128,6 +158,7 @@ export default function App() {
         <section className="px-5 pt-5 pb-2">
           <Slider label="Property price" value={s.priceL} min={10} max={300} step={0.5}
             edit={{ min: 1, max: 2000, decimals: 1, prefix: '₹', suffix: 'L', wide: true }}
+            hint={s.priceL >= 100 ? ` ₹${(s.priceL / 100).toFixed(2)} Cr` : undefined}
             onChange={s.setPriceL} />
           <Slider label="Down payment" value={s.dpPct} min={10} max={60} step={1}
             edit={{ min: 0, max: 90, decimals: 0, suffix: '%' }}
@@ -385,7 +416,7 @@ export default function App() {
 
         {/* Affordability — collapsed */}
         <Expander title="Can I afford this loan?"
-          subtitle="Check it against your income — stays on your device"
+          subtitle="Check it against your income — 🔒 stays on your device "
           open={s.affOpen} onToggle={() => s.setAffOpen(!s.affOpen)}>
           <div className="space-y-3 mb-4">
             {([
